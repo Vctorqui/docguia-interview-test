@@ -16,7 +16,7 @@ import { cn } from '@/lib/utils'
 import { CalendarDay } from '@/hooks/use-calendar'
 import { CALENDAR_CONFIG, HOURS } from '@/constants/calendar'
 import { isTimeInRange } from '@/lib/appointment-utils'
-import { AlertCircle } from 'lucide-react'
+import { toast } from 'sonner'
 import { useEffect, useState } from 'react'
 
 export function AppointmentForm({
@@ -35,8 +35,9 @@ export function AppointmentForm({
   const [date, setDate] = useState(initialData?.dayIndex.toString() || '')
   const [time, setTime] = useState('')
   const [service, setService] = useState(initialData?.service || '')
-  const [duration, setDuration] = useState(initialData?.height || 30)
-  const [error, setError] = useState<string | null>(null)
+  const [duration, setDuration] = useState<number | string>(
+    initialData?.height || 30,
+  )
 
   useEffect(() => {
     if (initialData) {
@@ -55,201 +56,220 @@ export function AppointmentForm({
 
   const handleSubmit = () => {
     if (!patient || !clinic || !date || !time) {
-      setError('Por favor completa todos los campos obligatorios.')
+      toast.error('Por favor completa todos los campos obligatorios.')
       return
     }
 
     if (!isTimeInRange(time)) {
-      setError(
+      toast.error(
         `La hora seleccionada está fuera del horario de atención (${CALENDAR_CONFIG.START_HOUR}:00 AM - ${CALENDAR_CONFIG.END_HOUR - 12}:00 PM).`,
       )
       return
     }
 
-    setError(null)
+    const finalDuration = typeof duration === 'number' ? duration : 30
+
     onSubmit({
       patient,
       clinic,
       date,
       time,
       service,
-      duration,
+      duration: finalDuration,
     })
   }
 
   return (
-    <ScrollArea className='flex-1 p-6'>
-      <div className='space-y-6'>
-        <div className='space-y-2'>
-          <div className='flex items-center justify-between'>
-            <Label
-              htmlFor='patient'
-              className='text-sm font-medium flex items-center gap-1'
-            >
-              Paciente <span className='text-red-500'>*</span>
-            </Label>
-            <Button
-              variant='link'
-              className='text-brand text-xs font-medium flex items-center gap-1 hover:no-underline p-0 h-auto'
-            >
-              Añadir paciente <Plus className='h-3 w-3' />
-            </Button>
-          </div>
-          <div className='relative'>
-            <Select value={patient} onValueChange={setPatient}>
-              <SelectTrigger
-                className={cn('w-full', !patient && 'text-gray-500')}
+    <div className='flex flex-col h-full bg-white'>
+      <ScrollArea className='flex-1'>
+        <div className='p-6 space-y-6'>
+          <div className='space-y-2'>
+            <div className='flex items-center justify-between'>
+              <Label
+                htmlFor='patient'
+                className='text-sm font-medium flex items-center gap-1'
               >
-                <SelectValue placeholder='Buscar paciente' />
-              </SelectTrigger>
-              <SelectContent>
-                {patient &&
-                  !['Juan Pérez', 'María García', 'Carlos Rodríguez'].includes(
-                    patient,
-                  ) && <SelectItem value={patient}>{patient}</SelectItem>}
-                <SelectItem value='Juan Pérez'>Juan Pérez</SelectItem>
-                <SelectItem value='María García'>María García</SelectItem>
-                <SelectItem value='Carlos Rodríguez'>
-                  Carlos Rodríguez
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <div className='space-y-2'>
-          <Label
-            htmlFor='clinic'
-            className='text-sm font-medium flex items-center gap-1'
-          >
-            Consultorio <span className='text-red-500'>*</span>
-          </Label>
-          <Select value={clinic} onValueChange={setClinic}>
-            <SelectTrigger className={cn('w-full', !clinic && 'text-gray-400')}>
-              <SelectValue placeholder='Selecciona un consultorio' />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value='principal'>Consultorio Principal</SelectItem>
-              <SelectItem value='secundario'>Sede Norte</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className='grid grid-cols-2 gap-4'>
-          <div className='space-y-2'>
-            <Label className='text-sm font-medium flex items-center gap-1'>
-              Fecha <span className='text-red-500'>*</span>
-            </Label>
-            <Select value={date} onValueChange={setDate}>
-              <SelectTrigger className={cn('w-full', !date && 'text-gray-400')}>
-                <SelectValue placeholder='Selecciona una fecha' />
-              </SelectTrigger>
-              <SelectContent>
-                {calendarDays?.map((day, idx) => {
-                  const dayDate = day.date
-                  const label = `${day.name}, ${dayDate.getDate()} ${dayDate.toLocaleDateString('es-ES', { month: 'short' })}`
-                  return (
-                    <SelectItem key={idx} value={dayDate.getDay().toString()}>
-                      {label}
-                    </SelectItem>
-                  )
-                })}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className='space-y-2'>
-            <Label className='text-sm font-medium flex items-center gap-1'>
-              Hora <span className='text-red-500'>*</span>
-            </Label>
-            <Select value={time} onValueChange={setTime}>
-              <SelectTrigger className={cn('w-full', !time && 'text-gray-400')}>
-                <SelectValue placeholder='Hora' />
-              </SelectTrigger>
-              <SelectContent>
-                {HOURS.filter((h) => h < CALENDAR_CONFIG.END_HOUR).map((h) => {
-                  const label =
-                    h === 12
-                      ? '12:00 PM'
-                      : h > 12
-                        ? `${h - 12}:00 PM`
-                        : `${h}:00 AM`
-                  const labelHalf =
-                    h === 12
-                      ? '12:30 PM'
-                      : h > 12
-                        ? `${h - 12}:30 PM`
-                        : `${h}:30 AM`
-                  return (
-                    <React.Fragment key={h}>
-                      <SelectItem value={`${h.toString().padStart(2, '0')}:00`}>
-                        {label}
-                      </SelectItem>
-                      <SelectItem value={`${h.toString().padStart(2, '0')}:30`}>
-                        {labelHalf}
-                      </SelectItem>
-                    </React.Fragment>
-                  )
-                })}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        {error && (
-          <div className='flex items-center gap-2 p-3 rounded-lg bg-red-50 text-red-600 border border-red-100 animate-in fade-in slide-in-from-top-1'>
-            <AlertCircle className='h-4 w-4 shrink-0' />
-            <span className='text-xs font-medium'>{error}</span>
-          </div>
-        )}
-
-        <div className='space-y-2'>
-          <Label className='text-sm font-medium text-gray-700'>Servicios</Label>
-          <Select value={service} onValueChange={setService}>
-            <SelectTrigger
-              className={cn('w-full', !service && 'text-gray-400')}
-            >
-              <SelectValue placeholder='Seleccionar servicios...' />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value='limpieza'>Limpieza Dental</SelectItem>
-              <SelectItem value='control'>Control</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className='space-y-2'>
-          <Label className='text-sm font-medium text-gray-700'>
-            Duración de la cita
-          </Label>
-          <div className='relative'>
-            <Input
-              type='number'
-              value={duration}
-              onChange={(e) => setDuration(parseInt(e.target.value))}
-              className='pr-12'
-            />
-            <div className='absolute inset-y-0 right-3 flex items-center pointer-events-none'>
-              <span className='text-sm text-gray-400'>min</span>
+                Paciente <span className='text-red-500'>*</span>
+              </Label>
+              <Button
+                variant='link'
+                className='text-brand text-xs font-medium flex items-center gap-1 hover:no-underline p-0 h-auto'
+              >
+                Añadir paciente <Plus className='h-3 w-3' />
+              </Button>
+            </div>
+            <div className='relative'>
+              <Select value={patient} onValueChange={setPatient}>
+                <SelectTrigger
+                  className={cn('w-full', !patient && 'text-gray-500')}
+                >
+                  <SelectValue placeholder='Buscar paciente' />
+                </SelectTrigger>
+                <SelectContent>
+                  {patient &&
+                    ![
+                      'Juan Pérez',
+                      'María García',
+                      'Carlos Rodríguez',
+                    ].includes(patient) && (
+                      <SelectItem value={patient}>{patient}</SelectItem>
+                    )}
+                  <SelectItem value='Juan Pérez'>Juan Pérez</SelectItem>
+                  <SelectItem value='María García'>María García</SelectItem>
+                  <SelectItem value='Carlos Rodríguez'>
+                    Carlos Rodríguez
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
-        </div>
 
-        <div className='space-y-2 pt-2'>
-          <Button
-            variant='link'
-            className='text-brand text-sm font-medium flex items-center gap-1 hover:no-underline p-0 h-auto w-fit'
-          >
-            Añadir notas internas <Plus className='h-4 w-4' />
-          </Button>
-          <Button
-            variant='link'
-            className='text-brand text-sm font-medium flex items-center gap-1 hover:no-underline p-0 h-auto w-fit'
-          >
-            Añadir Motivo de consulta <Plus className='h-4 w-4' />
-          </Button>
-        </div>
+          <div className='space-y-2'>
+            <Label
+              htmlFor='clinic'
+              className='text-sm font-medium flex items-center gap-1'
+            >
+              Consultorio <span className='text-red-500'>*</span>
+            </Label>
+            <Select value={clinic} onValueChange={setClinic}>
+              <SelectTrigger
+                className={cn('w-full', !clinic && 'text-gray-400')}
+              >
+                <SelectValue placeholder='Selecciona un consultorio' />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value='principal'>Consultorio Principal</SelectItem>
+                <SelectItem value='secundario'>Sede Norte</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-        <div className='p-6 border-t flex gap-3'>
+          <div className='grid grid-cols-2 gap-4'>
+            <div className='space-y-2'>
+              <Label className='text-sm font-medium flex items-center gap-1'>
+                Fecha <span className='text-red-500'>*</span>
+              </Label>
+              <Select value={date} onValueChange={setDate}>
+                <SelectTrigger
+                  className={cn('w-full', !date && 'text-gray-400')}
+                >
+                  <SelectValue placeholder='Selecciona una fecha' />
+                </SelectTrigger>
+                <SelectContent>
+                  {calendarDays?.map((day, idx) => {
+                    const dayDate = day.date
+                    const label = `${day.name}, ${dayDate.getDate()} ${dayDate.toLocaleDateString('es-ES', { month: 'short' })}`
+                    return (
+                      <SelectItem key={idx} value={dayDate.getDay().toString()}>
+                        {label}
+                      </SelectItem>
+                    )
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className='space-y-2'>
+              <Label className='text-sm font-medium flex items-center gap-1'>
+                Hora <span className='text-red-500'>*</span>
+              </Label>
+              <Select value={time} onValueChange={setTime}>
+                <SelectTrigger
+                  className={cn('w-full', !time && 'text-gray-400')}
+                >
+                  <SelectValue placeholder='Hora' />
+                </SelectTrigger>
+                <SelectContent>
+                  {HOURS.filter((h) => h < CALENDAR_CONFIG.END_HOUR).map(
+                    (h) => {
+                      const label =
+                        h === 12
+                          ? '12:00 PM'
+                          : h > 12
+                            ? `${h - 12}:00 PM`
+                            : `${h}:00 AM`
+                      const labelHalf =
+                        h === 12
+                          ? '12:30 PM'
+                          : h > 12
+                            ? `${h - 12}:30 PM`
+                            : `${h}:30 AM`
+                      return (
+                        <React.Fragment key={h}>
+                          <SelectItem
+                            value={`${h.toString().padStart(2, '0')}:00`}
+                          >
+                            {label}
+                          </SelectItem>
+                          <SelectItem
+                            value={`${h.toString().padStart(2, '0')}:30`}
+                          >
+                            {labelHalf}
+                          </SelectItem>
+                        </React.Fragment>
+                      )
+                    },
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className='space-y-2'>
+            <Label className='text-sm font-medium text-gray-700'>
+              Servicios
+            </Label>
+            <Select value={service} onValueChange={setService}>
+              <SelectTrigger
+                className={cn('w-full', !service && 'text-gray-400')}
+              >
+                <SelectValue placeholder='Seleccionar servicios...' />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value='limpieza'>Limpieza Dental</SelectItem>
+                <SelectItem value='control'>Control</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className='space-y-2'>
+            <Label className='text-sm font-medium text-gray-700'>
+              Duración de la cita
+            </Label>
+            <div className='relative'>
+              <Input
+                type='number'
+                value={duration}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value)
+                  setDuration(isNaN(val) ? '' : val)
+                }}
+                className='pr-12'
+              />
+              <div className='absolute inset-y-0 right-3 flex items-center pointer-events-none'>
+                <span className='text-sm text-gray-400'>min</span>
+              </div>
+            </div>
+          </div>
+
+          <div className='space-y-2 pt-2 pb-6'>
+            <Button
+              variant='link'
+              className='text-brand text-sm font-medium flex items-center gap-1 hover:no-underline p-0 h-auto w-fit'
+            >
+              Añadir notas internas <Plus className='h-4 w-4' />
+            </Button>
+            <Button
+              variant='link'
+              className='text-brand text-sm font-medium flex items-center gap-1 hover:no-underline p-0 h-auto w-fit'
+            >
+              Añadir Motivo de consulta <Plus className='h-4 w-4' />
+            </Button>
+          </div>
+        </div>
+      </ScrollArea>
+
+      <div className='p-6 border-t bg-white'>
+        <div className='flex gap-3'>
           <Button
             variant='outline'
             className='flex-1 py-6 rounded-xl text-gray-500 border-gray-200'
@@ -265,6 +285,6 @@ export function AppointmentForm({
           </Button>
         </div>
       </div>
-    </ScrollArea>
+    </div>
   )
 }

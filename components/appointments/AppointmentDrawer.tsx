@@ -34,12 +34,14 @@ export function AppointmentDrawer({
           </SheetTitle>
         </SheetHeader>
 
-        <AppointmentForm
-          onCancel={() => onOpenChange(false)}
-          onSubmit={onSubmit}
-          initialData={appointment}
-          calendarDays={calendarDays}
-        />
+        <div className='flex-1 min-h-0 h-full'>
+          <AppointmentForm
+            onCancel={() => onOpenChange(false)}
+            onSubmit={onSubmit}
+            initialData={appointment}
+            calendarDays={calendarDays}
+          />
+        </div>
       </SheetContent>
     </Sheet>
   )
