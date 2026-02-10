@@ -18,8 +18,8 @@ export function WeeklyCalendar({
   const { days, currentDayIndex } = useCalendar()
 
   return (
-    <div className='flex-1 overflow-auto bg-white'>
-      <div className='min-w-[1000px]'>
+    <div className='flex-1 overflow-auto bg-white scrollbar-hide'>
+      <div className='min-w-[1000px] md:min-w-0'>
         <CalendarHeader days={days} />
 
         <div className='relative flex'>

@@ -1,98 +1,63 @@
-'use client'
-
+import { useState, useCallback } from 'react'
 import { type ParsedAppointment } from '@/lib/appointment-parsing'
-import { useVoiceRecognition } from '@/hooks/use-voice-recognition'
 import { ResultBubble } from './voiceStructure/ResultBubble'
 import { TranscriptionBubble } from './voiceStructure/TranscriptionBubble'
 import { MicButton } from './voiceStructure/MicButton'
-import { useCallback, useState } from 'react'
+import { Appointment } from '@/types/appointments'
+import { useVoiceAssistant } from '@/hooks/use-voice-assistant'
 
 interface VoiceAssistantProps {
   onParsed: (data: ParsedAppointment) => void
+  appointments: Appointment[]
 }
 
-export function VoiceAssistant({ onParsed }: VoiceAssistantProps) {
-  const [showResult, setShowResult] = useState(false)
-  const [parsedData, setParsedData] = useState<ParsedAppointment | null>(null)
-
-  const handleParsed = useCallback((data: ParsedAppointment) => {
-    setParsedData(data)
-    setShowResult(true)
-  }, [])
-
+export function VoiceAssistant({
+  onParsed,
+  appointments,
+}: VoiceAssistantProps) {
   const {
     isRecording,
     transcription,
     isProcessing,
+    showResult,
+    parsedData,
+    matchedAppointment,
     toggleRecording,
-    setTranscription,
-  } = useVoiceRecognition(handleParsed)
+    handleUpdateField,
+    handleConfirm,
+    handleCancel,
+  } = useVoiceAssistant(appointments, onParsed)
 
-  const handleUpdateField = useCallback(
-    (field: keyof ParsedAppointment, value: any) => {
-      if (!parsedData) return
+  const [isClosing, setIsClosing] = useState(false)
 
-      const updatedData = { ...parsedData, [field]: value }
+  const handleClose = useCallback(() => {
+    setIsClosing(true)
+    setTimeout(() => {
+      handleCancel()
+      setIsClosing(false)
+    }, 300)
+  }, [handleCancel])
 
-      const requiredFields: (keyof ParsedAppointment)[] = [
-        'patient',
-        'date',
-        'time',
-        'reason',
-      ]
-      const missingFields = requiredFields.filter((f) => !updatedData[f])
-
-      let followUpPrompt = undefined
-      if (missingFields.length > 0) {
-        const fieldMap: Record<string, string> = {
-          patient: 'el nombre del paciente',
-          date: 'la fecha',
-          time: 'la hora',
-          reason: 'el motivo',
-        }
-        const missing = missingFields.map((f) => fieldMap[f as string])
-        if (missing.length === 1) {
-          followUpPrompt = `Necesito completar un dato: me falta ${missing[0]}.`
-        } else {
-          const last = missing.pop()
-          followUpPrompt = `Necesito completar algunos datos: me falta ${missing.join(', ')} y ${last}.`
-        }
-      }
-
-      setParsedData({
-        ...updatedData,
-        missingFields: missingFields as string[],
-        followUpPrompt,
-      })
+  const handleConfirmAction = useCallback(
+    (time?: string) => {
+      setIsClosing(true)
+      setTimeout(() => {
+        handleConfirm(onParsed, time)
+        setIsClosing(false)
+      }, 300)
     },
-    [parsedData],
+    [handleConfirm, onParsed],
   )
-
-  const handleConfirm = (updatedTime?: string) => {
-    if (parsedData) {
-      const finalData = updatedTime
-        ? { ...parsedData, time: updatedTime, isAmbiguous: false }
-        : parsedData
-      onParsed(finalData)
-      setShowResult(false)
-      setTranscription('')
-      setParsedData(null)
-    }
-  }
-
-  const handleCancel = () => {
-    setShowResult(false)
-    setTranscription('')
-    setParsedData(null)
-  }
 
   return (
     <div className='fixed bottom-8 right-8 z-50 flex flex-col items-end gap-3'>
       {showResult && parsedData && (
         <ResultBubble
           data={parsedData}
-          onCancel={handleCancel}
-          onConfirm={handleConfirm}
+          isClosing={isClosing}
+          matchedAppointment={matchedAppointment}
+          onCancel={handleClose}
+          onConfirm={handleConfirmAction}
           onUpdateField={handleUpdateField}
         />
       )}

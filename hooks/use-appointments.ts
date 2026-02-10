@@ -44,6 +44,7 @@ export function useAppointments() {
     )
     setDrawerOpen(false)
     setSelectedAppointment(null)
+    toast.success('Cita editada con éxito')
   }, [])
 
   const openDrawer = useCallback(() => {

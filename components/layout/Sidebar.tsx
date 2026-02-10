@@ -5,16 +5,26 @@ import { Button } from '../ui/button'
 import { SIDEBAR_CONFIG } from '@/constants/sidebar'
 import Image from 'next/image'
 
-export function Sidebar() {
+export function Sidebar({ open }: { open: boolean }) {
   return (
-    <aside className='w-64 border-r bg-white flex flex-col h-screen'>
-      <div className='p-6'>
+    <aside
+      className={cn(
+        'fixed inset-y-0 left-0 z-50 flex flex-col h-screen transition-all duration-300 ease-in-out overflow-hidden bg-white border-r shadow-2xl',
+        'md:relative md:translate-x-0 md:opacity-100 md:shadow-none',
+        open
+          ? 'w-64 opacity-100 translate-x-0'
+          : 'w-0 opacity-0 -translate-x-full md:w-64',
+      )}
+    >
+      <div className='p-6 w-64'>
         <div className='flex items-center gap-2 text-brand text-2xl font-bold'>
           <Image
             src='/logo/logo-white.avif'
             alt='Logo'
             width={128}
             height={128}
+            priority
+            style={{ width: 'auto', height: 'auto' }}
           />
         </div>
       </div>
