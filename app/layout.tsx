@@ -18,6 +18,8 @@ export const metadata: Metadata = {
   description: 'Interview Test - DocGuia',
 }
 
+import { TooltipProvider } from '@/components/ui/tooltip'
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -26,7 +28,7 @@ export default function RootLayout({
   return (
     <html lang='es'>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        {children}
+        <TooltipProvider>{children}</TooltipProvider>
         <Toaster />
       </body>
     </html>
