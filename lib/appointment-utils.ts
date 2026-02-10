@@ -4,21 +4,45 @@ import { CALENDAR_CONFIG } from '@/constants/calendar'
 
 export function mapVoiceDataToAppointment(
   data: ParsedAppointment,
-): Appointment {
-  return {
-    id: Math.random().toString(36).slice(2, 9),
-    patientName: data.patient || 'Nuevo Paciente',
-    time: `${data.time} - ${data.duration} min`,
-    duration: `${data.duration} min`,
-    dayIndex: data.date?.includes('13 Feb') ? 5 : 2,
-    top: data.time
-      ? (parseInt(data.time.split(':')[0]) - CALENDAR_CONFIG.START_HOUR) * 60 +
-        parseInt(data.time.split(':')[1])
-      : 60,
-    height: data.duration || 30,
-    clinic: data.clinic,
-    service: data.service,
+): Partial<Appointment> {
+  const result: Partial<Appointment> = {}
+
+  if (data.patient) result.patientName = data.patient
+  if (data.clinic) result.clinic = data.clinic
+  if (data.service) result.service = data.service
+
+  if (data.time) {
+    result.time = `${data.time} - ${data.duration || 30} min`
+    result.duration = `${data.duration || 30} min`
+    result.height = data.duration || 30
+
+    const [hourStr, minuteStr] = data.time.split(':')
+    const hour = parseInt(hourStr)
+    const minutes = parseInt(minuteStr.split(' ')[0])
+    const period = data.time.toLowerCase().includes('pm') ? 'pm' : 'am'
+
+    let adjustedHour = hour
+    if (period === 'pm' && hour < 12) adjustedHour += 12
+    if (period === 'am' && hour === 12) adjustedHour = 0
+
+    result.top = (adjustedHour - CALENDAR_CONFIG.START_HOUR) * 60 + minutes
   }
+
+  // Simplified dayIndex mapping for now
+  if (data.date) {
+    const lowDate = data.date.toLowerCase()
+    if (lowDate.includes('lunes')) result.dayIndex = 1
+    else if (lowDate.includes('martes')) result.dayIndex = 2
+    else if (lowDate.includes('miércoles') || lowDate.includes('miercoles'))
+      result.dayIndex = 3
+    else if (lowDate.includes('jueves')) result.dayIndex = 4
+    else if (lowDate.includes('viernes')) result.dayIndex = 5
+    else if (lowDate.includes('sábado') || lowDate.includes('sabado'))
+      result.dayIndex = 6
+    else if (lowDate.includes('domingo')) result.dayIndex = 0
+  }
+
+  return result
 }
 
 export function mapFormDataToAppointment(data: AppointmentData): Appointment {
@@ -127,4 +151,27 @@ export function isTimeInRange(time: string): boolean {
   const [hourStr, minuteStr] = time.split(':')
   const hour = parseInt(hourStr)
   return hour >= CALENDAR_CONFIG.START_HOUR && hour <= CALENDAR_CONFIG.END_HOUR
+}
+
+export function findAppointmentByTime(
+  appointments: Appointment[],
+  sourceTime: string,
+  dayIndex: number,
+): Appointment | null {
+  if (!sourceTime) return null
+
+  const sourceHourStr = sourceTime.split(':')[0]
+  const sourceHour = parseInt(sourceHourStr)
+  const sourcePeriod = sourceTime.toLowerCase().includes('pm') ? 'pm' : 'am'
+
+  let adjustedSourceHour = sourceHour
+  if (sourcePeriod === 'pm' && sourceHour < 12) adjustedSourceHour += 12
+  if (sourcePeriod === 'am' && sourceHour === 12) adjustedSourceHour = 0
+
+  return (
+    appointments.find((a) => {
+      const aptHour = Math.floor(a.top / 60) + 7 // START_HOUR
+      return a.dayIndex === dayIndex && aptHour === adjustedSourceHour
+    }) || null
+  )
 }

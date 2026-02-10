@@ -1,11 +1,15 @@
+export type Intent = 'create' | 'edit'
+
 export interface ParsedAppointment {
   patient?: string
   date?: string
   time?: string
+  sourceTime?: string
   duration?: number
   reason?: string
   clinic?: string
   service?: string
+  intent: Intent
   isAmbiguous: boolean
   ambiguities?: string[]
   suggestions?: string[]
@@ -103,6 +107,7 @@ function extractDate(lowercase: string): string {
     const tomorrow = new Date()
     tomorrow.setDate(tomorrow.getDate() + 1)
     return tomorrow.toLocaleDateString('es-ES', {
+      weekday: 'long',
       day: 'numeric',
       month: 'short',
       year: 'numeric',
@@ -111,6 +116,7 @@ function extractDate(lowercase: string): string {
 
   if (lowercase.includes('hoy')) {
     return new Date().toLocaleDateString('es-ES', {
+      weekday: 'long',
       day: 'numeric',
       month: 'short',
       year: 'numeric',
@@ -127,6 +133,7 @@ function extractDate(lowercase: string): string {
       if (diff <= 0) diff += 7
       d.setDate(d.getDate() + diff)
       return d.toLocaleDateString('es-ES', {
+        weekday: 'long',
         day: 'numeric',
         month: 'short',
         year: 'numeric',
@@ -145,6 +152,7 @@ function extractDate(lowercase: string): string {
       d.setDate(day)
       if (d < new Date()) d.setFullYear(d.getFullYear() + 1)
       return d.toLocaleDateString('es-ES', {
+        weekday: 'long',
         day: 'numeric',
         month: 'short',
         year: 'numeric',
@@ -237,21 +245,57 @@ function extractReason(lowercase: string, currentPatient: string): string {
 
 export function parseVoiceCommand(text: string): ParsedAppointment {
   const lowercase = text.toLowerCase()
+  const intent: Intent =
+    lowercase.includes('mueve') ||
+    lowercase.includes('cambia') ||
+    lowercase.includes('reprograma') ||
+    lowercase.includes('edita') ||
+    lowercase.includes('modifica') ||
+    lowercase.includes('pasala') ||
+    lowercase.includes('pásala')
+      ? 'edit'
+      : 'create'
+
   const result: ParsedAppointment = {
+    intent,
     isAmbiguous: false,
     ambiguities: [],
     suggestions: [],
     missingFields: [],
   }
 
-  result.date = extractDate(lowercase)
-  const timeInfo = extractTime(lowercase)
-  result.time = timeInfo.time
-  if (timeInfo.isAmbiguous) {
-    result.isAmbiguous = true
-    result.ambiguities?.push(timeInfo.ambiguity!)
+  if (intent === 'edit') {
+    const movePattern =
+      /(?:de\s+las?|desde\s+las?|la\s+de\s+las?|la\s+cita\s+de\s+las?)\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm|de\s+la\s+mañana|de\s+la\s+tarde|de\s+la\s+noche)?)\s+(?:a\s+las?|para\s+las?)\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm|de\s+la\s+mañana|de\s+la\s+tarde|de\s+la\s+noche)?)/i
+    const moveMatch = text.match(movePattern)
+
+    if (moveMatch) {
+      const sourceInfo = extractTime(moveMatch[1])
+      const targetInfo = extractTime(moveMatch[2])
+      result.sourceTime = sourceInfo.time
+      result.time = targetInfo.time
+      result.isAmbiguous = sourceInfo.isAmbiguous || targetInfo.isAmbiguous
+    } else {
+      // Fallback: try to find two times if the sentence is simple "8 a 9"
+      const times = lowercase.match(/(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)/gi)
+      if (times && times.length >= 2) {
+        const sourceInfo = extractTime(times[0])
+        const targetInfo = extractTime(times[1])
+        result.sourceTime = sourceInfo.time
+        result.time = targetInfo.time
+      } else {
+        const timeInfo = extractTime(lowercase)
+        result.time = timeInfo.time
+        result.isAmbiguous = timeInfo.isAmbiguous
+      }
+    }
+  } else {
+    const timeInfo = extractTime(lowercase)
+    result.time = timeInfo.time
+    result.isAmbiguous = timeInfo.isAmbiguous
   }
 
+  result.date = extractDate(lowercase)
   result.patient = extractPatient(lowercase)
   result.duration = extractDuration(lowercase)
   result.reason = extractReason(lowercase, result.patient!)
@@ -274,12 +318,13 @@ export function parseVoiceCommand(text: string): ParsedAppointment {
     }
   }
 
-  if (!result.patient) result.missingFields.push('patient')
-  if (!result.date) result.missingFields.push('date')
+  if (intent === 'create' && !result.patient)
+    result.missingFields.push('patient')
+  if (intent === 'create' && !result.date) result.missingFields.push('date')
   if (!result.time && !result.ambiguities?.includes('time_slot')) {
     result.missingFields.push('time')
   }
-  if (!result.reason) result.missingFields.push('reason')
+  if (intent === 'create' && !result.reason) result.missingFields.push('reason')
 
   if (result.missingFields.length > 0) {
     const fieldMap: Record<string, string> = {
