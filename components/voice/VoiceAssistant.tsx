@@ -5,6 +5,8 @@ import { TranscriptionBubble } from './voiceStructure/TranscriptionBubble'
 import { MicButton } from './voiceStructure/MicButton'
 import { Appointment } from '@/types/appointments'
 import { useVoiceAssistant } from '@/hooks/use-voice-assistant'
+import { X } from 'lucide-react'
+import { Button } from '../ui/button'
 
 interface VoiceAssistantProps {
   onParsed: (data: ParsedAppointment) => void
@@ -49,8 +51,30 @@ export function VoiceAssistant({
     [handleConfirm, onParsed],
   )
 
+  const [showInvitation, setShowInvitation] = useState(
+    appointments.length === 0,
+  )
+
+  if (appointments.length > 0 && showInvitation) {
+    setShowInvitation(false)
+  }
+
   return (
     <div className='fixed bottom-8 right-8 z-50 flex flex-col items-end gap-3'>
+      {showInvitation && !showResult && !transcription && !isProcessing && (
+        <div className='bg-brand text-white px-4 py-2 rounded-xl shadow-lg text-sm font-medium animate-bounce-subtle flex items-center gap-2 mb-2'>
+          <span>✨ Agenda tu primera cita</span>
+          <Button
+            variant={'ghost'}
+            size={'icon'}
+            onClick={() => setShowInvitation(false)}
+            className='hover:bg-white/20 rounded-full transition-colors'
+          >
+            <X className='h-3 w-3' />
+          </Button>
+        </div>
+      )}
+
       {showResult && parsedData && (
         <ResultBubble
           data={parsedData}
