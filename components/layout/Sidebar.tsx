@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Calendar, ChevronDown } from 'lucide-react'
+import { Calendar, ChevronDown, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '../ui/button'
 import { SIDEBAR_CONFIG } from '@/constants/sidebar'
@@ -65,20 +65,20 @@ export function Sidebar({ open }: { open: boolean }) {
       </nav>
 
       <div className='p-4 space-y-4'>
-        <div className='bg-brand-muted p-4 rounded-xl border border-brand-border-muted'>
-          <div className='flex items-center gap-2 text-brand font-semibold text-sm mb-1'>
-            <div className='w-2 h-2 rounded-full bg-brand' />
-            Cuenta Demo
+        <div className='bg-brand-muted p-4 rounded-xl flex flex-col justify-center items-center border border-brand-border-muted'>
+          <div className='flex items-center gap-2'>
+            <Sparkles className='w-4 h-4 text-brand' />
+            <p className='text-brand font-bold text-xs mb-1'>Cuenta Demo</p>
           </div>
-          <p className='text-brand text-xs'>Acceso ilimitado</p>
+          <p className='text-brand text-xs font-semibold'>Acceso ilimitado</p>
         </div>
 
         <Button
           variant='outline'
-          className='flex items-center justify-between w-full h-auto p-2 border rounded-xl hover:bg-gray-50 transition-colors text-left bg-white'
+          className='flex items-center border-none justify-between w-full h-auto p-2 text-left'
         >
           <div className='flex items-center gap-2'>
-            <div className='w-8 h-8 rounded-full bg-[#D1E9FF] flex items-center justify-center text-[#1570EF] font-bold text-xs'>
+            <div className='w-8 h-8 rounded-md bg-brand flex items-center justify-center text-white font-bold text-xs'>
               C
             </div>
             <div>

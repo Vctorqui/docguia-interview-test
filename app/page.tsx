@@ -20,7 +20,8 @@ export default function Home() {
     openDrawer,
     editAppointment,
   } = useAppointments()
-  const { days } = useCalendar()
+  const { days, rangeText, nextWeek, prevWeek, goToToday, currentDayIndex } =
+    useCalendar()
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
@@ -31,10 +32,16 @@ export default function Home() {
       <CalendarHeader
         onAddAppointment={openDrawer}
         onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+        rangeText={rangeText}
+        onNext={nextWeek}
+        onPrev={prevWeek}
+        onToday={goToToday}
       />
       <WeeklyCalendar
         appointments={appointments}
         onEditAppointment={editAppointment}
+        days={days}
+        currentDayIndex={currentDayIndex}
       />
       <AppointmentDrawer
         open={drawerOpen}

@@ -13,22 +13,25 @@ import { Button } from '@/components/ui/button'
 interface CalendarHeaderProps {
   onAddAppointment?: () => void
   onToggleSidebar?: () => void
+  rangeText?: string
+  onToday?: () => void
+  onPrev?: () => void
+  onNext?: () => void
 }
 
 export function CalendarHeader({
   onAddAppointment,
   onToggleSidebar,
+  rangeText = '8 - 14 Feb 2026',
+  onToday,
+  onPrev,
+  onNext,
 }: CalendarHeaderProps) {
   return (
     <div className='flex flex-col gap-4 p-4 md:p-6 border-b bg-white'>
       <div className='flex items-center justify-between'>
         <div className='flex items-center gap-2 md:gap-3'>
-          <Button
-            variant='outline'
-            size='icon'
-            onClick={onToggleSidebar}
-            className='h-9 w-9 md:h-10 md:w-10 text-gray-500'
-          >
+          <Button variant='outline' size='icon' onClick={onToggleSidebar}>
             <SquareChevronRight className='h-5 w-5' />
           </Button>
           <h2 className='text-lg md:text-xl font-semibold flex items-center gap-2'>
@@ -46,7 +49,7 @@ export function CalendarHeader({
           onClick={onAddAppointment}
           className='bg-brand hover:bg-brand-hover text-white px-3 md:px-4 py-1.5 md:py-2 rounded-lg flex items-center gap-2 transition-colors font-medium text-xs md:text-sm'
         >
-          <span className='hidden xs:inline'>Agendar Cita</span>
+          <span className='hidden md:inline'>Agendar Cita</span>
           <Plus className='w-4 h-4' />
         </Button>
       </div>
@@ -55,7 +58,8 @@ export function CalendarHeader({
         <div className='flex items-center gap-2 md:gap-4'>
           <Button
             variant='outline'
-            className='bg-white text-xs md:text-sm font-medium hover:bg-gray-50 rounded-lg px-3 md:px-5 py-1.5 md:py-2'
+            onClick={onToday}
+            className='text-xs md:text-sm font-medium hover:bg-gray-50 rounded-lg px-3 md:px-5 py-1.5 md:py-2'
           >
             Hoy
           </Button>
@@ -64,16 +68,18 @@ export function CalendarHeader({
             <Button
               variant='ghost'
               size='icon'
+              onClick={onPrev}
               className='h-8 w-8 md:h-9 md:w-9 rounded-none hover:bg-gray-50 transition-colors border-r'
             >
               <ChevronLeft className='w-3 h-3 md:w-4 md:h-4 text-gray-400' />
             </Button>
             <div className='px-3 md:px-6 py-1.5 md:py-2 text-xs md:text-sm font-semibold text-gray-700 min-w-[120px] md:min-w-[160px] text-center'>
-              8 - 14 Feb 2026
+              {rangeText}
             </div>
             <Button
               variant='ghost'
               size='icon'
+              onClick={onNext}
               className='h-8 w-8 md:h-9 md:w-9 rounded-none hover:bg-gray-50 transition-colors border-l'
             >
               <ChevronRight className='w-3 h-3 md:w-4 md:h-4 text-gray-400' />
@@ -82,24 +88,24 @@ export function CalendarHeader({
         </div>
 
         <div className='flex items-center gap-2'>
-          <div className='flex bg-gray-50/80 p-1 rounded-full border border-gray-100'>
+          <div className='flex bg-gray-50/80 rounded-full border border-gray-200'>
             <Button
               size='sm'
-              className='h-7 md:h-8 px-4 md:px-6 rounded-full text-xs md:text-sm font-semibold transition-all bg-white shadow-sm ring-1 ring-gray-200/50 text-brand border-none hover:bg-white'
+              className='px-4 md:px-4 rounded-full text-xs md:text-sm font-semibold transition-all bg-white ring-1 ring-gray-200/50 text-brand border-[#e5e5e5] hover:bg-white'
             >
               Semana
             </Button>
             <Button
               variant='ghost'
               size='sm'
-              className='h-7 md:h-8 px-4 md:px-6 rounded-full text-xs md:text-sm font-medium text-gray-400 hover:text-gray-600 transition-all'
+              className='px-4 md:px-4 rounded-full text-xs md:text-sm font-medium text-gray-400 hover:text-gray-600 transition-all'
             >
               Día
             </Button>
             <Button
               variant='ghost'
               size='sm'
-              className='h-7 md:h-8 px-4 md:px-6 rounded-full text-xs md:text-sm font-medium text-gray-400 hover:text-gray-600 transition-all'
+              className='px-4 md:px-4 rounded-full text-xs md:text-sm font-medium text-gray-400 hover:text-gray-600 transition-all'
             >
               Lista
             </Button>

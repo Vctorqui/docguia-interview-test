@@ -4,6 +4,7 @@ export interface Appointment {
   time: string
   duration: string
   dayIndex: number
+  fullDate: string
   top: number
   height: number
   clinic?: string
