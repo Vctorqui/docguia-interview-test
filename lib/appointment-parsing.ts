@@ -52,6 +52,7 @@ const patientTriggers = [
   'para',
   'con',
   'pon una cita con',
+  'la cita de',
 ]
 
 const stopWords = [
@@ -73,6 +74,7 @@ const stopWords = [
   'en',
   'por',
   'con',
+  'para',
   'en la',
   'por la',
 ]
@@ -296,7 +298,9 @@ export function parseVoiceCommand(text: string): ParsedAppointment {
     lowercase.includes('edita') ||
     lowercase.includes('modifica') ||
     lowercase.includes('pasala') ||
-    lowercase.includes('pásala')
+    lowercase.includes('pásala') ||
+    lowercase.includes('pasala') ||
+    lowercase.includes('pasa')
       ? 'edit'
       : 'create'
 

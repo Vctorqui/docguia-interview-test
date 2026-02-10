@@ -7,6 +7,7 @@ import {
   mapFormDataToAppointment,
   isTimeInRange,
   findAppointmentByTime,
+  findAppointmentByName,
 } from '@/lib/appointment-utils'
 import { type ParsedAppointment } from '@/lib/appointment-parsing'
 import { toast } from 'sonner'
@@ -72,6 +73,14 @@ export function useAppointments() {
           }
         }
 
+        if (!targetId && data.patient) {
+          const today = new Date().getDay()
+          const found = findAppointmentByName(appointments, data.patient, today)
+          if (found) {
+            targetId = found.id
+          }
+        }
+
         if (targetId) {
           setAppointments((prev) =>
             prev.map((apt) =>
@@ -84,8 +93,12 @@ export function useAppointments() {
           setSelectedAppointment(null)
           toast.success('Cita actualizada con éxito')
           return
-        } else if (data.sourceTime) {
-          toast.error(`No encontré ninguna cita a las ${data.sourceTime}`)
+        } else {
+          toast.error(
+            data.patient
+              ? `No encontré ninguna cita para ${data.patient}`
+              : `No encontré ninguna cita para editar`,
+          )
           return
         }
       }
