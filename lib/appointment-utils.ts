@@ -36,26 +36,27 @@ export function mapVoiceDataToAppointment(
   }
 
   if (data.date) {
+    // Handle both ISO YYYY-MM-DD and Spanish day names
     const lowDate = data.date.toLowerCase()
+    let dayIndex: number | undefined = undefined
 
-    if (lowDate.includes('lunes')) result.dayIndex = 1
-    else if (lowDate.includes('martes')) result.dayIndex = 2
-    else if (lowDate.includes('miércoles') || lowDate.includes('miercoles'))
-      result.dayIndex = 3
-    else if (lowDate.includes('jueves')) result.dayIndex = 4
-    else if (lowDate.includes('viernes')) result.dayIndex = 5
-    else if (lowDate.includes('sábado') || lowDate.includes('sabado'))
-      result.dayIndex = 6
-    else if (lowDate.includes('domingo')) result.dayIndex = 0
+    if (lowDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      const d = new Date(data.date + 'T12:00:00')
+      dayIndex = d.getDay()
+    } else {
+      if (lowDate.includes('lunes')) dayIndex = 1
+      else if (lowDate.includes('martes')) dayIndex = 2
+      else if (lowDate.includes('miércoles') || lowDate.includes('miercoles'))
+        dayIndex = 3
+      else if (lowDate.includes('jueves')) dayIndex = 4
+      else if (lowDate.includes('viernes')) dayIndex = 5
+      else if (lowDate.includes('sábado') || lowDate.includes('sabado'))
+        dayIndex = 6
+      else if (lowDate.includes('domingo')) dayIndex = 0
+    }
 
-    const d = new Date()
-
-    const startOfWeek = new Date(d)
-    startOfWeek.setDate(d.getDate() - d.getDay())
-    const target = new Date(startOfWeek)
-    target.setDate(startOfWeek.getDate() + (result.dayIndex || 0))
-
-    result.fullDate = target.toISOString().split('T')[0]
+    result.dayIndex = dayIndex
+    result.fullDate = data.date
   }
 
   return result
@@ -113,7 +114,6 @@ export function mapFormDataToAppointment(data: AppointmentData): Appointment {
 export function calculateOverlapGroups(
   appointments: Appointment[],
 ): Appointment[] {
-  // Reset previous data
   const cleaned = appointments.map((a) => ({
     ...a,
     columnIndex: 0,
@@ -147,7 +147,6 @@ export function calculateOverlapGroups(
     }
     if (currentCluster.length > 0) clusters.push(currentCluster)
 
-    // Assign columns within each cluster
     for (const cluster of clusters) {
       const columns: Appointment[][] = []
 
@@ -234,7 +233,7 @@ export function findAppointmentByTime(
 
   return (
     appointments.find((a) => {
-      const aptHour = Math.floor(a.top / 60) + 7 // START_HOUR
+      const aptHour = Math.floor(a.top / 60) + 7
       return a.dayIndex === dayIndex && aptHour === adjustedSourceHour
     }) || null
   )
