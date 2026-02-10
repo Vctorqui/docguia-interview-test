@@ -13,11 +13,19 @@ import { Button } from '@/components/ui/button'
 interface CalendarHeaderProps {
   onAddAppointment?: () => void
   onToggleSidebar?: () => void
+  rangeText?: string
+  onToday?: () => void
+  onPrev?: () => void
+  onNext?: () => void
 }
 
 export function CalendarHeader({
   onAddAppointment,
   onToggleSidebar,
+  rangeText = '8 - 14 Feb 2026',
+  onToday,
+  onPrev,
+  onNext,
 }: CalendarHeaderProps) {
   return (
     <div className='flex flex-col gap-4 p-4 md:p-6 border-b bg-white'>
@@ -50,6 +58,7 @@ export function CalendarHeader({
         <div className='flex items-center gap-2 md:gap-4'>
           <Button
             variant='outline'
+            onClick={onToday}
             className='text-xs md:text-sm font-medium hover:bg-gray-50 rounded-lg px-3 md:px-5 py-1.5 md:py-2'
           >
             Hoy
@@ -59,16 +68,18 @@ export function CalendarHeader({
             <Button
               variant='ghost'
               size='icon'
+              onClick={onPrev}
               className='h-8 w-8 md:h-9 md:w-9 rounded-none hover:bg-gray-50 transition-colors border-r'
             >
               <ChevronLeft className='w-3 h-3 md:w-4 md:h-4 text-gray-400' />
             </Button>
             <div className='px-3 md:px-6 py-1.5 md:py-2 text-xs md:text-sm font-semibold text-gray-700 min-w-[120px] md:min-w-[160px] text-center'>
-              8 - 14 Feb 2026
+              {rangeText}
             </div>
             <Button
               variant='ghost'
               size='icon'
+              onClick={onNext}
               className='h-8 w-8 md:h-9 md:w-9 rounded-none hover:bg-gray-50 transition-colors border-l'
             >
               <ChevronRight className='w-3 h-3 md:w-4 md:h-4 text-gray-400' />

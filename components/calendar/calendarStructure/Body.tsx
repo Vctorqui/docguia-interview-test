@@ -16,7 +16,11 @@ export function GridBody({
   currentDayIndex: number
   onEditAppointment?: (appointment: Appointment) => void
 }) {
-  const processedAppointments = calculateOverlapGroups(appointments)
+  const filteredAppointments = appointments.filter((apt) => {
+    return days.some((day) => apt.fullDate === day.isoDate)
+  })
+
+  const processedAppointments = calculateOverlapGroups(filteredAppointments)
 
   return (
     <div className='flex-1 flex relative'>
