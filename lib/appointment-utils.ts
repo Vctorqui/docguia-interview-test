@@ -238,3 +238,38 @@ export function findAppointmentByTime(
     }) || null
   )
 }
+
+export function normalizeString(s: string): string {
+  return s
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+}
+
+export function findAppointmentByName(
+  appointments: Appointment[],
+  patientName: string,
+  preferredDayIndex?: number,
+): Appointment | null {
+  if (!patientName) return null
+  const normalizedSearch = normalizeString(patientName)
+
+  if (preferredDayIndex !== undefined) {
+    const match = appointments.find(
+      (a) =>
+        a.dayIndex === preferredDayIndex &&
+        (normalizeString(a.patientName).includes(normalizedSearch) ||
+          normalizedSearch.includes(normalizeString(a.patientName))),
+    )
+    if (match) return match
+  }
+
+  return (
+    appointments.find(
+      (a) =>
+        normalizeString(a.patientName).includes(normalizedSearch) ||
+        normalizedSearch.includes(normalizeString(a.patientName)),
+    ) || null
+  )
+}

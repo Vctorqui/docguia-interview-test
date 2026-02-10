@@ -9,6 +9,7 @@ import { useVoiceRecognition } from '@/hooks/use-voice-recognition'
 import { Appointment } from '@/types/appointments'
 import {
   findAppointmentByTime,
+  findAppointmentByName,
   mapVoiceDataToAppointment,
 } from '@/lib/appointment-utils'
 
@@ -23,16 +24,19 @@ export function useVoiceAssistant(
 
   const handleParsed = useCallback(
     (data: ParsedAppointment) => {
-      if (data.intent === 'edit' && data.sourceTime) {
-        // Use specified date if available, otherwise current day
-        const dayIndex = data.date
-          ? mapVoiceDataToAppointment(data).dayIndex || new Date().getDay()
-          : new Date().getDay()
-        const found = findAppointmentByTime(
-          appointments,
-          data.sourceTime,
-          dayIndex,
-        )
+      if (data.intent === 'edit') {
+        let found = null
+        if (data.sourceTime) {
+          const dayIndex = data.date
+            ? mapVoiceDataToAppointment(data).dayIndex || new Date().getDay()
+            : new Date().getDay()
+          found = findAppointmentByTime(appointments, data.sourceTime, dayIndex)
+        }
+
+        if (!found && data.patient) {
+          const today = new Date().getDay()
+          found = findAppointmentByName(appointments, data.patient, today)
+        }
         setMatchedAppointment(found)
       } else {
         setMatchedAppointment(null)
