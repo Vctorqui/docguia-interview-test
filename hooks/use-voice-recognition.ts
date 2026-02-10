@@ -5,6 +5,7 @@ import {
   parseVoiceCommand,
   type ParsedAppointment,
 } from '@/lib/appointment-parsing'
+import { toast } from 'sonner'
 
 export function useVoiceRecognition(
   onParsed: (data: ParsedAppointment) => void,
@@ -13,6 +14,22 @@ export function useVoiceRecognition(
   const [transcription, setTranscription] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
   const recognitionRef = useRef<any>(null)
+
+  const stopRecording = useCallback(() => {
+    setIsRecording(false)
+    setIsProcessing(true)
+
+    if (recognitionRef.current) {
+      recognitionRef.current.stop()
+    }
+
+    // Simulate NLP processing delay for better UX
+    setTimeout(() => {
+      const data = parseVoiceCommand(transcription)
+      onParsed(data)
+      setIsProcessing(false)
+    }, 1200)
+  }, [transcription, onParsed])
 
   useEffect(() => {
     const SpeechRecognition =
@@ -34,7 +51,18 @@ export function useVoiceRecognition(
 
       recognitionRef.current.onerror = (event: any) => {
         console.error('Speech recognition error', event.error)
-        stopRecording()
+        setIsRecording(false)
+        setIsProcessing(false)
+
+        if (event.error === 'not-allowed') {
+          toast.error('Permiso de micrófono denegado.')
+        } else if (event.error === 'audio-capture') {
+          toast.error('No se pudo detectar el micrófono. Revisa tu conexión.')
+        } else if (event.error === 'no-speech') {
+          // Just reset without error toast for no-speech
+        } else {
+          toast.error('Error en el reconocimiento de voz.')
+        }
       }
     }
 
@@ -61,22 +89,6 @@ export function useVoiceRecognition(
       console.error('Error starting recognition', e)
     }
   }, [])
-
-  const stopRecording = useCallback(() => {
-    setIsRecording(false)
-    setIsProcessing(true)
-
-    if (recognitionRef.current) {
-      recognitionRef.current.stop()
-    }
-
-    // Simulate NLP processing delay for better UX
-    setTimeout(() => {
-      const data = parseVoiceCommand(transcription)
-      onParsed(data)
-      setIsProcessing(false)
-    }, 1200)
-  }, [transcription, onParsed])
 
   const toggleRecording = useCallback(() => {
     if (isRecording) {
