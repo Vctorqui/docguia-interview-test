@@ -34,11 +34,12 @@ export function AmbiguityResolution({
               variant='outline'
               size='sm'
               className='h-8 text-xs text-orange-700 border-orange-200 bg-white flex-1 hover:bg-orange-100'
-              onClick={() =>
-                resolve(
-                  `${data.time?.split(':')[0]}:${data.time?.split(':')[1]} AM`,
-                )
-              }
+              onClick={() => {
+                const timeStr = data.time || '7:00'
+                const [h, m] = timeStr.split(':')
+                const mins = m ? m.split(' ')[0] : '00'
+                resolve(`${h}:${mins} AM`)
+              }}
             >
               AM
             </Button>
@@ -47,8 +48,10 @@ export function AmbiguityResolution({
               size='sm'
               className='h-8 text-xs text-orange-700 border-orange-200 bg-white flex-1 hover:bg-orange-100'
               onClick={() => {
-                const h = parseInt(data.time?.split(':')[0] || '0')
-                resolve(`${h < 12 ? h + 12 : h}:${data.time?.split(':')[1]} PM`)
+                const timeStr = data.time || '7:00'
+                const [h, m] = timeStr.split(':')
+                const mins = m ? m.split(' ')[0] : '00'
+                resolve(`${h}:${mins} PM`)
               }}
             >
               PM

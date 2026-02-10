@@ -32,7 +32,8 @@ export function ResultBubble({
   onUpdateField: (field: keyof ParsedAppointment, value: any) => void
 }) {
   const isValidTime = data.time ? isTimeInRange(data.time) : true
-  const isComplete = data.missingFields.length === 0 && isValidTime
+  const isComplete =
+    data.missingFields.length === 0 && isValidTime && !data.isAmbiguous
 
   return (
     <div

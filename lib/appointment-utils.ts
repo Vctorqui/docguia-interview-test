@@ -16,21 +16,28 @@ export function mapVoiceDataToAppointment(
     result.duration = `${data.duration || 30} min`
     result.height = data.duration || 30
 
-    const [hourStr, minuteStr] = data.time.split(':')
+    const [hourStr, ...rest] = data.time.split(':')
     const hour = parseInt(hourStr)
-    const minutes = parseInt(minuteStr.split(' ')[0])
-    const period = data.time.toLowerCase().includes('pm') ? 'pm' : 'am'
+    const minuteStr = rest.join(':')
+    const minutes = parseInt(minuteStr.split(' ')[0]) || 0
+
+    // Improved period detection
+    const isExplicitPM =
+      data.time.toLowerCase().includes('pm') ||
+      data.time.toLowerCase().includes('tarde') ||
+      data.time.toLowerCase().includes('noche')
 
     let adjustedHour = hour
-    if (period === 'pm' && hour < 12) adjustedHour += 12
-    if (period === 'am' && hour === 12) adjustedHour = 0
+    if (isExplicitPM && hour < 12) adjustedHour += 12
+    if (!isExplicitPM && hour === 12 && data.time.toLowerCase().includes('am'))
+      adjustedHour = 0
 
     result.top = (adjustedHour - CALENDAR_CONFIG.START_HOUR) * 60 + minutes
   }
 
-  // Simplified dayIndex mapping for now
   if (data.date) {
     const lowDate = data.date.toLowerCase()
+
     if (lowDate.includes('lunes')) result.dayIndex = 1
     else if (lowDate.includes('martes')) result.dayIndex = 2
     else if (lowDate.includes('miércoles') || lowDate.includes('miercoles'))
@@ -40,6 +47,15 @@ export function mapVoiceDataToAppointment(
     else if (lowDate.includes('sábado') || lowDate.includes('sabado'))
       result.dayIndex = 6
     else if (lowDate.includes('domingo')) result.dayIndex = 0
+
+    const d = new Date()
+
+    const startOfWeek = new Date(d)
+    startOfWeek.setDate(d.getDate() - d.getDay())
+    const target = new Date(startOfWeek)
+    target.setDate(startOfWeek.getDate() + (result.dayIndex || 0))
+
+    result.fullDate = target.toISOString().split('T')[0]
   }
 
   return result
@@ -47,9 +63,35 @@ export function mapVoiceDataToAppointment(
 
 export function mapFormDataToAppointment(data: AppointmentData): Appointment {
   let dayIndex = 2
-  if (data.date === 'today') dayIndex = new Date().getDay()
-  else if (data.date === 'tomorrow') dayIndex = (new Date().getDay() + 1) % 7
-  else if (!isNaN(parseInt(data.date))) dayIndex = parseInt(data.date)
+  let isoDate = ''
+
+  if (data.date === 'today') {
+    const d = new Date()
+    dayIndex = d.getDay()
+    isoDate = d.toISOString().split('T')[0]
+  } else if (data.date === 'tomorrow') {
+    const d = new Date()
+    d.setDate(d.getDate() + 1)
+    dayIndex = d.getDay()
+    isoDate = d.toISOString().split('T')[0]
+  } else if (!isNaN(parseInt(data.date))) {
+    dayIndex = parseInt(data.date)
+    const now = new Date()
+    const startOfWeek = new Date(now)
+    startOfWeek.setDate(now.getDate() - now.getDay())
+    const target = new Date(startOfWeek)
+    target.setDate(startOfWeek.getDate() + dayIndex)
+    isoDate = target.toISOString().split('T')[0]
+  } else {
+    // Attempt to parse existing ISO or other formats
+    try {
+      const d = new Date(data.date)
+      if (!isNaN(d.getTime())) {
+        dayIndex = d.getDay()
+        isoDate = d.toISOString().split('T')[0]
+      }
+    } catch (e) {}
+  }
 
   return {
     id: Math.random().toString(36).slice(2, 9),
@@ -57,6 +99,7 @@ export function mapFormDataToAppointment(data: AppointmentData): Appointment {
     time: `${data.time} - ${data.duration} min`,
     duration: `${data.duration} min`,
     dayIndex: dayIndex,
+    fullDate: isoDate,
     top: data.time
       ? (parseInt(data.time.split(':')[0]) - CALENDAR_CONFIG.START_HOUR) * 60 +
         parseInt(data.time.split(':')[1])
@@ -150,7 +193,20 @@ export function isTimeInRange(time: string): boolean {
   if (!time) return true
   const [hourStr, minuteStr] = time.split(':')
   const hour = parseInt(hourStr)
-  return hour >= CALENDAR_CONFIG.START_HOUR && hour <= CALENDAR_CONFIG.END_HOUR
+  const isPM =
+    time.toLowerCase().includes('pm') ||
+    time.toLowerCase().includes('tarde') ||
+    time.toLowerCase().includes('noche')
+
+  let adjustedHour = hour
+  if (isPM && hour < 12) adjustedHour += 12
+  if (!isPM && hour === 12 && time.toLowerCase().includes('am'))
+    adjustedHour = 0
+
+  return (
+    adjustedHour >= CALENDAR_CONFIG.START_HOUR &&
+    adjustedHour < CALENDAR_CONFIG.END_HOUR
+  )
 }
 
 export function findAppointmentByTime(
@@ -162,11 +218,19 @@ export function findAppointmentByTime(
 
   const sourceHourStr = sourceTime.split(':')[0]
   const sourceHour = parseInt(sourceHourStr)
-  const sourcePeriod = sourceTime.toLowerCase().includes('pm') ? 'pm' : 'am'
+  const isExplicitPM =
+    sourceTime.toLowerCase().includes('pm') ||
+    sourceTime.toLowerCase().includes('tarde') ||
+    sourceTime.toLowerCase().includes('noche')
 
   let adjustedSourceHour = sourceHour
-  if (sourcePeriod === 'pm' && sourceHour < 12) adjustedSourceHour += 12
-  if (sourcePeriod === 'am' && sourceHour === 12) adjustedSourceHour = 0
+  if (isExplicitPM && sourceHour < 12) adjustedSourceHour += 12
+  if (
+    !isExplicitPM &&
+    sourceHour === 12 &&
+    sourceTime.toLowerCase().includes('am')
+  )
+    adjustedSourceHour = 0
 
   return (
     appointments.find((a) => {

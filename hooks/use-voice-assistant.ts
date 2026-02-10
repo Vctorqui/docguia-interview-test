@@ -62,42 +62,44 @@ export function useVoiceAssistant(
 
   const handleUpdateField = useCallback(
     (field: keyof ParsedAppointment, value: any) => {
-      if (!parsedData) return
+      setParsedData((prev) => {
+        if (!prev) return null
 
-      const updatedData = { ...parsedData, [field]: value }
+        const updatedData = { ...prev, [field]: value }
 
-      // Relaxed validation for edit intent
-      const requiredFields: (keyof ParsedAppointment)[] =
-        updatedData.intent === 'create'
-          ? ['patient', 'date', 'time', 'reason']
-          : ['time']
+        // Relaxed validation for edit intent
+        const requiredFields: (keyof ParsedAppointment)[] =
+          updatedData.intent === 'create'
+            ? ['patient', 'date', 'time', 'reason']
+            : ['time']
 
-      const missingFields = requiredFields.filter((f) => !updatedData[f])
+        const missingFields = requiredFields.filter((f) => !updatedData[f])
 
-      let followUpPrompt = undefined
-      if (missingFields.length > 0) {
-        const fieldMap: Record<string, string> = {
-          patient: 'el nombre del paciente',
-          date: 'la fecha',
-          time: 'la hora',
-          reason: 'el motivo',
+        let followUpPrompt = undefined
+        if (missingFields.length > 0) {
+          const fieldMap: Record<string, string> = {
+            patient: 'el nombre del paciente',
+            date: 'la fecha',
+            time: 'la hora',
+            reason: 'el motivo',
+          }
+          const missing = missingFields.map((f) => fieldMap[f as string])
+          if (missing.length === 1) {
+            followUpPrompt = `Necesito completar un dato: me falta ${missing[0]}.`
+          } else {
+            const last = missing.pop()
+            followUpPrompt = `Necesito completar algunos datos: me falta ${missing.join(', ')} y ${last}.`
+          }
         }
-        const missing = missingFields.map((f) => fieldMap[f as string])
-        if (missing.length === 1) {
-          followUpPrompt = `Necesito completar un dato: me falta ${missing[0]}.`
-        } else {
-          const last = missing.pop()
-          followUpPrompt = `Necesito completar algunos datos: me falta ${missing.join(', ')} y ${last}.`
-        }
-      }
 
-      setParsedData({
-        ...updatedData,
-        missingFields: missingFields as string[],
-        followUpPrompt,
+        return {
+          ...updatedData,
+          missingFields: missingFields as string[],
+          followUpPrompt,
+        }
       })
     },
-    [parsedData],
+    [],
   )
 
   const handleConfirm = useCallback(

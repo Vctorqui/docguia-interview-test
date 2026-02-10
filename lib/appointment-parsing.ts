@@ -103,6 +103,20 @@ const forbidden = [
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 
 function extractDate(lowercase: string): string {
+  if (
+    lowercase.includes('pasado mañana') ||
+    lowercase.includes('pasado mañana')
+  ) {
+    const day = new Date()
+    day.setDate(day.getDate() + 2)
+    return day.toLocaleDateString('es-ES', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    })
+  }
+
   if (lowercase.includes('mañana')) {
     const tomorrow = new Date()
     tomorrow.setDate(tomorrow.getDate() + 1)
@@ -169,20 +183,46 @@ function extractTime(lowercase: string): {
   ambiguity?: string
 } {
   const timeRegex =
-    /(?:a las |las |a la |la )?(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i
+    /(?:a las |las |a la |la )?(\d{1,2})(?::(\d{2}))?\s*(am|pm|a\.m\.|p\.m\.|de la mañana|de la tarde|de la noche)?/i
   const timeMatch = lowercase.match(timeRegex)
 
   if (timeMatch) {
     const hour = parseInt(timeMatch[1])
     const minutes = timeMatch[2] || '00'
-    const period = timeMatch[3]?.toLowerCase()
-    const isAmbiguous = !period && hour > 0 && hour <= 12
+    let rawPeriod = timeMatch[3]?.toLowerCase()
+    let period: 'am' | 'pm' | undefined = undefined
+
+    if (rawPeriod) {
+      if (
+        rawPeriod.includes('p') ||
+        rawPeriod.includes('tarde') ||
+        rawPeriod.includes('noche')
+      )
+        period = 'pm'
+      if (rawPeriod.includes('a') || rawPeriod.includes('mañana')) period = 'am'
+    }
+
+    const isAmbiguous = !rawPeriod && hour >= 7 && hour <= 12
+
+    // Only apply the smart default period if it's NOT ambiguous
+    if (!period && !isAmbiguous) {
+      if (hour >= 7 && hour <= 11) period = 'am'
+      else if (hour === 12 || (hour >= 1 && hour <= 6)) period = 'pm'
+    }
+
+    const timeString = isAmbiguous
+      ? `${hour}:${minutes}`
+      : `${hour}:${minutes} ${period || ''}`
 
     return {
-      time: `${hour}:${minutes} ${period || ''}`.trim(),
+      time: timeString.trim().toUpperCase(),
       isAmbiguous,
       ambiguity: isAmbiguous ? 'period' : undefined,
     }
+  }
+
+  if (lowercase.includes('mediodía') || lowercase.includes('mediodia')) {
+    return { time: '12:00 PM', isAmbiguous: false }
   }
 
   return { time: '', isAmbiguous: false }
@@ -194,9 +234,21 @@ function extractPatient(lowercase: string): string {
       const afterTrigger = lowercase.split(trigger + ' ')[1]
       const nameMatch = afterTrigger.match(/^([a-zñáéíóúü]+\s?){1,3}/i)
       if (nameMatch) {
-        const potentialName = nameMatch[0].trim()
+        let potentialName = nameMatch[0].trim()
+        let words = potentialName.split(/\s+/)
+        while (
+          words.length > 0 &&
+          stopWords.includes(words[words.length - 1].toLowerCase())
+        ) {
+          words.pop()
+        }
+        potentialName = words.join(' ')
+
         const firstWord = potentialName.split(' ')[0]
-        if (!stopWords.includes(firstWord) && potentialName.length > 2) {
+        if (
+          !stopWords.includes(firstWord.toLowerCase()) &&
+          potentialName.length > 2
+        ) {
           return capitalize(potentialName)
         }
       }
@@ -275,6 +327,9 @@ export function parseVoiceCommand(text: string): ParsedAppointment {
       result.sourceTime = sourceInfo.time
       result.time = targetInfo.time
       result.isAmbiguous = sourceInfo.isAmbiguous || targetInfo.isAmbiguous
+
+      if (sourceInfo.ambiguity) result.ambiguities?.push(sourceInfo.ambiguity)
+      if (targetInfo.ambiguity) result.ambiguities?.push(targetInfo.ambiguity)
     } else {
       // Fallback: try to find two times if the sentence is simple "8 a 9"
       const times = lowercase.match(/(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)/gi)
@@ -283,16 +338,22 @@ export function parseVoiceCommand(text: string): ParsedAppointment {
         const targetInfo = extractTime(times[1])
         result.sourceTime = sourceInfo.time
         result.time = targetInfo.time
+        result.isAmbiguous = sourceInfo.isAmbiguous || targetInfo.isAmbiguous
+
+        if (sourceInfo.ambiguity) result.ambiguities?.push(sourceInfo.ambiguity)
+        if (targetInfo.ambiguity) result.ambiguities?.push(targetInfo.ambiguity)
       } else {
         const timeInfo = extractTime(lowercase)
         result.time = timeInfo.time
         result.isAmbiguous = timeInfo.isAmbiguous
+        if (timeInfo.ambiguity) result.ambiguities?.push(timeInfo.ambiguity)
       }
     }
   } else {
     const timeInfo = extractTime(lowercase)
     result.time = timeInfo.time
     result.isAmbiguous = timeInfo.isAmbiguous
+    if (timeInfo.ambiguity) result.ambiguities?.push(timeInfo.ambiguity)
   }
 
   result.date = extractDate(lowercase)
@@ -301,7 +362,11 @@ export function parseVoiceCommand(text: string): ParsedAppointment {
   result.reason = extractReason(lowercase, result.patient!)
 
   // Contextual Ambiguities (Afternoon/Morning)
-  if (lowercase.includes('en la tarde') || lowercase.includes('por la tarde')) {
+  if (
+    lowercase.includes('en la tarde') ||
+    lowercase.includes('por la tarde') ||
+    lowercase.includes('tardecita')
+  ) {
     result.isAmbiguous = true
     if (!result.ambiguities?.includes('time_slot')) {
       result.ambiguities?.push('time_slot')
@@ -309,7 +374,8 @@ export function parseVoiceCommand(text: string): ParsedAppointment {
     }
   } else if (
     lowercase.includes('en la mañana') ||
-    lowercase.includes('por la mañana')
+    lowercase.includes('por la mañana') ||
+    lowercase.includes('mañanita')
   ) {
     result.isAmbiguous = true
     if (!result.ambiguities?.includes('time_slot')) {

@@ -29,6 +29,8 @@ export function useAppointments() {
         } catch (e) {
           console.error('Failed to parse appointments', e)
         }
+      } else {
+        setAppointments(INITIAL_APPOINTMENTS)
       }
       setIsLoaded(true)
     }
